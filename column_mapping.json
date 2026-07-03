@@ -1,0 +1,17 @@
+{
+  "_comment": "Single source of truth for the RBI ATM/POS/Card Statistics XLSX column layout. Both scraper.py (server-side monthly pipeline) and index.html (client-side manual upload) read this file instead of hardcoding indices. If RBI changes their sheet format, update ONLY this file.",
+  "min_row_length": 19,
+  "columns": {
+    "sr_no": 1,
+    "bank_name": 2,
+    "cards_outstanding": 9,
+    "pos_volume": 11,
+    "pos_value": 12,
+    "online_volume": 13,
+    "online_value": 14,
+    "others_volume": 15,
+    "others_value": 16,
+    "atm_volume": 17,
+    "atm_value": 18
+  }
+}
