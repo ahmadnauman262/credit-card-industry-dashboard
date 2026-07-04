@@ -1,18 +1,10 @@
-name: Daily RBI Card Data Sync Pipeline
+name: Monthly RBI Data Sync Pipeline
 
 on:
   schedule:
-    # 11:00 AM IST every day = 05:30 UTC (IST is UTC+5:30, no daylight saving).
-    # GitHub Actions cron runs in UTC and can be delayed a few minutes during
-    # platform load, so treat 11:00 AM IST as a target, not an exact guarantee.
-    - cron: '30 5 * * *'
+    # Runs at midnight on the 1st of every month
+    - cron: '0 0 1 * *'
   workflow_dispatch: # Allows manual trigger execution testing via GitHub UI
-
-# Prevent overlapping runs if a manual trigger fires while the daily schedule
-# is still running (or vice versa) — avoids two commits racing on data.json.
-concurrency:
-  group: rbi-data-sync
-  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -42,8 +34,6 @@ jobs:
       run: |
         git config --global user.name "Automated Data Ingestion Action"
         git config --global user.email "actions@github.com"
-        git add data.json
-        # Only push if there are actual balance variance updates in the values —
-        # RBI typically publishes once a month, so most daily runs will find
-        # nothing new and this keeps the commit history clean.
-        git diff --quiet && git diff --staged --quiet || (git commit -m "System Sync: Compiled latest RBI Card Data Matrix" && git push)
+        git add site/data.json
+        # Only push code if there are actual balance variance updates in the values
+        git diff --quiet && git diff --staged --quiet || (git commit -m "System Sync: Compiled latest Monthly RBI Card Data Matrix" && git push)
