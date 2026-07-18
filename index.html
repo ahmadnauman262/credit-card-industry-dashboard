@@ -260,9 +260,9 @@ a.skip-link:focus{ top:8px; }
 .topnav-title p{ font-size:11px; color:var(--text-tertiary); font-weight:600; margin-top:1px; }
 .topnav-right{ display:flex; align-items:center; gap:10px; }
 
-.search-box{ position:relative; display:flex; align-items:center; }
+.search-box{ position:relative; display:flex; align-items:center; min-width:0; flex-shrink:1; }
 .search-box input{
-  width:210px; background:var(--surface-sunken); border:1px solid var(--border); border-radius:999px;
+  width:210px; max-width:100%; background:var(--surface-sunken); border:1px solid var(--border); border-radius:999px;
   padding:8px 14px 8px 34px; font-size:12.5px; color:var(--text-primary); transition:all var(--dur-fast) var(--ease);
 }
 .search-box input:focus{ width:260px; background:var(--surface); border-color:var(--primary); }
@@ -275,7 +275,9 @@ a.skip-link:focus{ top:8px; }
 }
 .icon-btn:hover{ color:var(--primary); border-color:var(--primary); transform:translateY(-1px); }
 
-.last-updated{ display:flex; flex-direction:column; align-items:flex-end; font-size:10.5px; color:var(--text-tertiary); line-height:1.3; }
+/* flex-shrink:0 + nowrap keeps the timestamp on its own two clean lines instead
+   of getting crushed/wrapped when the search input expands on focus. */
+.last-updated{ display:flex; flex-direction:column; align-items:flex-end; font-size:10.5px; color:var(--text-tertiary); line-height:1.3; flex-shrink:0; white-space:nowrap; }
 .last-updated b{ color:var(--text-primary); font-size:11.5px; font-family:var(--font-mono); }
 .health-dot{ width:7px; height:7px; border-radius:50%; display:inline-block; margin-right:5px; flex-shrink:0; }
 .health-dot.live{ background:var(--accent); box-shadow:0 0 0 2px var(--accent-100); }
@@ -426,6 +428,26 @@ table.data-table thead th:hover{ color:var(--primary); }
 table.data-table thead th i{ margin-left:4px; font-size:9px; opacity:.5; }
 table.data-table tbody td{ padding:12px 14px; border-bottom:1px solid var(--border); white-space:nowrap; font-family:var(--font-mono); color:var(--text-primary); }
 table.data-table tbody td.bank-name-cell{ font-family:var(--font-body); font-weight:600; }
+
+/* Sticky first two columns (Rank + Bank) so horizontal scrolling never strands
+   numeric rows without their bank label. Body cells sit at z-index 1; the header
+   row's own sticky cells are bumped to z-index 3 so the top-left corner stays
+   above both axes. Solid backgrounds are required — sticky cells overlap
+   scrolling content and would otherwise show it bleeding through. Column 1
+   (Rank) pins at left:0; column 2 (Bank) pins at --bank-col-left, which JS
+   syncs to the real measured Rank-column width after each render (falls back to
+   68px before the first sync). */
+table.data-table{ --bank-col-left:68px; }
+table.data-table thead th:nth-child(1),
+table.data-table thead th:nth-child(2){ position:sticky; z-index:3; }
+table.data-table thead th:nth-child(1){ left:0; }
+table.data-table thead th:nth-child(2){ left:var(--bank-col-left); }
+table.data-table tbody td:nth-child(1),
+table.data-table tbody td:nth-child(2){ position:sticky; z-index:1; background:var(--surface); }
+table.data-table tbody td:nth-child(1){ left:0; }
+table.data-table tbody td:nth-child(2){ left:var(--bank-col-left); box-shadow:6px 0 8px -6px rgba(0,0,0,.12); }
+table.data-table tbody tr:hover td:nth-child(1),
+table.data-table tbody tr:hover td:nth-child(2){ background:var(--surface-sunken); }
 table.data-table tbody tr{ cursor:pointer; transition:background var(--dur-fast) var(--ease); }
 table.data-table tbody tr:hover{ background:var(--surface-sunken); }
 .rank-chip{ display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:7px; background:var(--surface-sunken); font-weight:700; font-size:11px; }
@@ -668,8 +690,8 @@ footer.site-footer{ border-top:1px solid var(--border); padding:28px 0 8px; marg
       <div class="mode-switch-mini">
         <span class="label">Data source</span>
         <div class="source-toggle" style="width:100%; justify-content:space-between;">
-          <span class="st-label"><span class="st-dot" id="stDotSidebar"></span><span id="stLabelSidebar">Live sync</span></span>
-          <label class="switch" aria-label="Toggle live data or file upload">
+          <span class="st-label"><span class="st-dot" id="stDotSidebar"></span><span id="stLabelSidebar">Auto-synced</span></span>
+          <label class="switch" aria-label="Toggle auto-synced data or file upload">
             <input type="checkbox" id="sourceToggleSidebar">
             <span class="track"></span>
           </label>
@@ -694,9 +716,9 @@ footer.site-footer{ border-top:1px solid var(--border); padding:28px 0 8px; marg
         <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
         <input type="text" id="globalSearch" placeholder="Search a bank…" aria-label="Search a bank">
       </div>
-      <div class="source-toggle" id="topSourceToggleWrap" title="Switch between live RBI data and uploaded files">
-        <span class="st-label"><span class="st-dot" id="stDotTop"></span><span id="stLabelTop">Live</span></span>
-        <label class="switch" aria-label="Toggle live data or file upload">
+      <div class="source-toggle" id="topSourceToggleWrap" title="Switch between auto-synced RBI data and uploaded files">
+        <span class="st-label"><span class="st-dot" id="stDotTop"></span><span id="stLabelTop">Auto-synced</span></span>
+        <label class="switch" aria-label="Toggle auto-synced data or file upload">
           <input type="checkbox" id="sourceToggleTop">
           <span class="track"></span>
         </label>
@@ -950,7 +972,7 @@ footer.site-footer{ border-top:1px solid var(--border); padding:28px 0 8px; marg
       <section class="section" id="downloads" aria-labelledby="downloads-h">
         <div class="section-head">
           <div>
-            <span class="eyebrow">Section 08 — Export</span>
+            <span class="eyebrow">Section 07 — Export</span>
             <h2 id="downloads-h">Downloads</h2>
             <p>Take the current filtered view with you — spreadsheets, images, or a print-ready summary.</p>
           </div>
@@ -1601,7 +1623,7 @@ function computeKpis(monthLabel) {
     series.cards.push(t.cards); series.spend.push(t.spend); series.txns.push(t.txns);
     series.spendPerCard.push(t.spendPerCard); series.ticket.push(t.ticket);
   });
-  series.growth = series.spend;
+  series.growth = series.cards; // Market Growth % tracks the card base, a distinct metric from spend
 
   // One delta set per trailing month (not just the immediate prior and the oldest) —
   // deltasByMonth[i] corresponds to trailing[i], so callers can render "vs <month>" for
@@ -1617,11 +1639,11 @@ function computeKpis(monthLabel) {
       ticket: t.ticket > 0 ? ((avgTicket - t.ticket) / t.ticket) * 100 : null
     };
   });
-  deltasByMonth.forEach(d => { d.growth = d.spend; });
+  deltasByMonth.forEach(d => { d.growth = d.cards; }); // Market Growth % = MoM change in total outstanding cards
 
   const deltas = deltasByMonth[0] || { cards: null, growth: null, spend: null, txns: null, spendPerCard: null, ticket: null };
   return {
-    values: { cards: totalCards, growth: deltas.spend, spend: totalSpend, txns: totalVol, spendPerCard: avgSpendCard, ticket: avgTicket },
+    values: { cards: totalCards, growth: deltas.cards, spend: totalSpend, txns: totalVol, spendPerCard: avgSpendCard, ticket: avgTicket },
     deltas, deltasByMonth, series, prevMonth, oldestMonth, trailingMonths: trailing
   };
 }
@@ -1917,6 +1939,21 @@ function renderTable(monthLabel) {
   document.querySelectorAll("#rankingTable thead th").forEach(th => {
     th.innerHTML = th.textContent.replace(/\s*[\u2191\u2193]?$/, "") + (state.sortKey === th.dataset.key ? (state.sortDir === "asc" ? ' <i class="fa-solid fa-arrow-up"></i>' : ' <i class="fa-solid fa-arrow-down"></i>') : ' <i class="fa-solid fa-sort"></i>');
   });
+
+  // Pin the sticky Bank column exactly at the right edge of the Rank column,
+  // measured from the live layout so it stays correct regardless of font, zoom,
+  // or padding — no brittle hardcoded pixel offset.
+  syncStickyBankColumn();
+}
+
+function syncStickyBankColumn() {
+  const table = document.getElementById("rankingTable");
+  if (!table) return;
+  const firstHeader = table.querySelector("thead th:nth-child(1)");
+  if (firstHeader) {
+    const w = firstHeader.getBoundingClientRect().width;
+    if (w > 0) table.style.setProperty("--bank-col-left", w + "px");
+  }
 }
 
 /* ==================================================================
@@ -1944,7 +1981,7 @@ const METRIC_OPTIONS = [
 function metricDef(key) { return METRIC_OPTIONS.find(m => m.key === key) || METRIC_OPTIONS[0]; }
 
 function renderGrowthBankPicker(monthLabel) {
-  const allBanks = getComputedMonth(monthLabel).slice().sort((a, b) => b.cards_outstanding - a.cards_outstanding);
+  const allBanks = getComputedMonth(monthLabel).slice().sort((a, b) => a.bank_name.localeCompare(b.bank_name));
   const term = state.growthBankSearch.trim().toLowerCase();
   const banks = term ? allBanks.filter(b => b.bank_name.toLowerCase().includes(term)) : allBanks;
 
@@ -2422,7 +2459,7 @@ function renderInsights(monthLabel) {
   if (!bankMode) renderRibbon(insights.map(i => ({ title: i.title, text: i.text })));
 }
 function renderInsightBankSelect(monthLabel) {
-  const banks = getComputedMonth(monthLabel).slice().sort((a, b) => b.cards_outstanding - a.cards_outstanding);
+  const banks = getComputedMonth(monthLabel).slice().sort((a, b) => a.bank_name.localeCompare(b.bank_name));
   const optionsHtml = `<option value="">Industry-wide (all banks)</option>` + banks.map(b => `<option value="${b.bank_name.replace(/"/g,'&quot;')}">${b.bank_name}</option>`).join("");
   const sel = document.getElementById("insightBankSelect");
   sel.innerHTML = optionsHtml;
@@ -2528,8 +2565,9 @@ function closeDrawer() {
 const COMPARE_PALETTE = ["#0052CC","#36B37E","#FF991F","#8777D9"];
 const COMPARE_TABLE_METRICS = ["cards_outstanding","market_share","market_share_by_spend","net_additions","total_spend","pos_value_cr","online_value_cr","atm_value_cr","pos_share","online_share","atm_share_of_business","total_volume","avg_spend_per_card","txn_per_card","ticket_size","mom","yoy"];
 function renderComparePickerRow(monthLabel) {
-  const banks = getComputedMonth(monthLabel).slice().sort((a, b) => b.cards_outstanding - a.cards_outstanding);
-  if (!state.comparedBanks.length) state.comparedBanks = banks.slice(0, 4).map(b => b.bank_name);
+  const byCards = getComputedMonth(monthLabel).slice().sort((a, b) => b.cards_outstanding - a.cards_outstanding);
+  const banks = byCards.slice().sort((a, b) => a.bank_name.localeCompare(b.bank_name)); // dropdown options: alphabetical
+  if (!state.comparedBanks.length) state.comparedBanks = byCards.slice(0, 4).map(b => b.bank_name); // default selection: largest banks first
   while (state.comparedBanks.length < 4) state.comparedBanks.push("");
   state.comparedBanks = state.comparedBanks.slice(0, 4);
 
@@ -2623,8 +2661,9 @@ function renderCompareTable(monthLabel) {
    HISTORICAL TRENDS TAB
    ================================================================== */
 function renderHistPickerRow() {
-  const latest = getComputedMonth(database.months[0]).slice().sort((a, b) => b.cards_outstanding - a.cards_outstanding);
-  if (!state.histBanks.length) state.histBanks = latest.slice(0, 3).map(b => b.bank_name).concat("");
+  const latestByCards = getComputedMonth(database.months[0]).slice().sort((a, b) => b.cards_outstanding - a.cards_outstanding);
+  const latest = latestByCards.slice().sort((a, b) => a.bank_name.localeCompare(b.bank_name)); // dropdown options: alphabetical
+  if (!state.histBanks.length) state.histBanks = latestByCards.slice(0, 3).map(b => b.bank_name).concat(""); // default selection: largest banks first
   while (state.histBanks.length < 4) state.histBanks.push("");
   state.histBanks = state.histBanks.slice(0, 4);
 
@@ -3112,23 +3151,23 @@ function updateLastUpdated() {
       el2.textContent = "Data source: file upload mode — no files uploaded yet";
       if (healthDot) healthDot.className = "health-dot neutral";
       if (methDot) methDot.className = "health-dot neutral";
-      if (methText) methText.textContent = "You're in file upload mode but haven't uploaded any RBI spreadsheets yet. Open Settings to upload up to 12 files — live RBI sync stays paused until you switch back.";
+      if (methText) methText.textContent = "You're in file upload mode but haven't uploaded any RBI spreadsheets yet. Open Settings to upload up to 12 files — auto-sync stays paused until you switch back.";
     } else {
       el1.textContent = `Uploaded · ${monthCount} mo.`;
-      el2.textContent = `Data source: ${monthCount} manually uploaded month${monthCount > 1 ? "s" : ""} through ${throughMonth} — live RBI sync is paused`;
+      el2.textContent = `Data source: ${monthCount} manually uploaded month${monthCount > 1 ? "s" : ""} through ${throughMonth} — auto-sync is paused`;
       if (healthDot) healthDot.className = "health-dot neutral";
       if (methDot) methDot.className = "health-dot neutral";
-      if (methText) methText.textContent = `Running on ${monthCount} manually uploaded month${monthCount > 1 ? "s" : ""} through ${throughMonth}. Live RBI sync is paused until you switch back to Live.`;
+      if (methText) methText.textContent = `Running on ${monthCount} manually uploaded month${monthCount > 1 ? "s" : ""} through ${throughMonth}. Auto-sync is paused until you switch back.`;
     }
     return;
   }
 
   if (monthCount === 0) {
-    el1.textContent = "Waiting for live data…";
-    el2.textContent = "Live RBI sync — no data loaded yet";
+    el1.textContent = "Waiting for data…";
+    el2.textContent = "Auto-synced RBI data — no data loaded yet";
     if (healthDot) healthDot.className = "health-dot neutral";
     if (methDot) methDot.className = "health-dot neutral";
-    if (methText) methText.textContent = "Waiting for the live RBI feed (data.json) to load. If this persists, the scraper pipeline may not have published a data.json yet, or it isn't reachable from this environment.";
+    if (methText) methText.textContent = "Waiting for the auto-synced RBI data (data.json) to load. If this persists, the scraper pipeline may not have published a data.json yet, or it isn't reachable from this environment.";
   } else if (state.isLiveData && state.pipelineGeneratedAt) {
     const genDate = new Date(state.pipelineGeneratedAt);
     const str = genDate.toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" }) + " IST";
@@ -3147,10 +3186,10 @@ function updateLastUpdated() {
     // (i.e. it was produced by an older scraper.py) — this is genuinely live data,
     // just without a known exact refresh time.
     el1.textContent = `Live · ${monthCount} mo.`;
-    el2.textContent = `Live RBI data · covering ${monthCount} month${monthCount > 1 ? "s" : ""} through ${throughMonth} (exact refresh time unavailable — re-run the pipeline with the latest scraper.py to enable this)`;
+    el2.textContent = `Auto-synced RBI data · covering ${monthCount} month${monthCount > 1 ? "s" : ""} through ${throughMonth} (exact refresh time unavailable — re-run the pipeline with the latest scraper.py to enable this)`;
     if (healthDot) healthDot.className = "health-dot live";
     if (methDot) methDot.className = "health-dot live";
-    if (methText) methText.textContent = `Live RBI data loaded, covering ${monthCount} month${monthCount > 1 ? "s" : ""} through ${throughMonth}. Exact refresh timestamp isn't available in this data.json — re-run the pipeline with the current scraper.py to enable it.`;
+    if (methText) methText.textContent = `Auto-synced RBI data loaded, covering ${monthCount} month${monthCount > 1 ? "s" : ""} through ${throughMonth}. Exact refresh timestamp isn't available in this data.json — re-run the pipeline with the current scraper.py to enable it.`;
   } else {
     // months.length > 0 but isLiveData is false — shouldn't normally happen since
     // there's no seed data anymore, but keep a safe, honest fallback just in case.
@@ -3172,6 +3211,13 @@ function populateMonthSelector() {
    EVENT WIRING
    ================================================================== */
 function wireEvents() {
+  // Keep the sticky Bank-column offset aligned if the viewport reflows the table.
+  let stickyResizeTimer = null;
+  window.addEventListener("resize", () => {
+    clearTimeout(stickyResizeTimer);
+    stickyResizeTimer = setTimeout(syncStickyBankColumn, 120);
+  });
+
   // Top-level tab switching (Overview / Bank Comparison / Historical Trends) — driven
   // entirely by the sidebar now; the redundant top tab bar was removed.
   function switchTab(tab) {
@@ -3266,8 +3312,8 @@ function wireEvents() {
   function setSource(upload) {
     state.dataSource = upload ? "upload" : "live";
     [document.getElementById("sourceToggleSidebar"), document.getElementById("sourceToggleTop"), document.getElementById("settingsSourceToggle")].forEach(el => el.checked = upload);
-    document.getElementById("stLabelSidebar").textContent = upload ? "Upload mode" : "Live sync";
-    document.getElementById("stLabelTop").textContent = upload ? "Upload" : "Live";
+    document.getElementById("stLabelSidebar").textContent = upload ? "Upload mode" : "Auto-synced";
+    document.getElementById("stLabelTop").textContent = upload ? "Upload" : "Auto-synced";
     document.getElementById("stDotSidebar").classList.toggle("upload", upload);
     document.getElementById("stDotTop").classList.toggle("upload", upload);
     document.getElementById("settingsUploadArea").style.display = upload ? "flex" : "none";
@@ -3283,7 +3329,7 @@ function wireEvents() {
       showToast("Switched to file upload mode — upload your RBI spreadsheets to begin.", "fa-cloud-arrow-up");
     } else {
       hideUploadAlert();
-      showToast("Switched back to live RBI sync — reloading…", "fa-tower-broadcast");
+      showToast("Switched to auto-synced RBI data — reloading…", "fa-tower-broadcast");
       loadLiveData(true);
     }
   }
@@ -3432,13 +3478,13 @@ function loadLiveData(isSwitchBack) {
             populateMonthSelector();
             applyMyBankFromStorage();
             renderAll();
-            if (isSwitchBack) showToast("Live RBI data reloaded", "fa-circle-check");
+            if (isSwitchBack) showToast("Latest published data reloaded", "fa-circle-check");
           }
         })
         .catch(() => {
           // data.json isn't reachable yet — leave the dashboard in its empty state
           // (no seed/sample data is ever substituted in) so this is visibly obvious.
-          if (isSwitchBack) showToast("Couldn't reach the live RBI feed (data.json) — will keep showing no data until it's reachable.", "fa-triangle-exclamation");
+          if (isSwitchBack) showToast("Couldn't reach the auto-synced RBI data (data.json) — will keep showing no data until it's reachable.", "fa-triangle-exclamation");
         });
     });
 }
